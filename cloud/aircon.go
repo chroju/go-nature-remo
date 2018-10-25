@@ -1,5 +1,12 @@
 package natureremocloud
 
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+)
+
 type Aircon struct {
 	Range    Range  `json:"range"`
 	TempUnit string `json:"tempUnit"`
@@ -38,4 +45,32 @@ type AirconMode struct {
 	Temp []string `json:"temp"`
 	Vol  []string `json:"vol"`
 	Dir  []string `json:"dir"`
+}
+
+func (c *Client) PostAirconSettings(applianceID string, settings AirconSettings) error {
+	parameters, err := json.Marshal(settings)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST",
+		c.urlFor("/appliances/"+applianceID+"/aircon_settings").String(),
+		bytes.NewBuffer(parameters))
+	req.Header.Set("Content-Type", "application/json")
+
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.Request(req)
+	defer closeResponse(resp)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Failed to update aircon settings")
+	}
+
+	return nil
 }
